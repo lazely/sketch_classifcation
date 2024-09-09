@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 
-from src.config import get_config,get_criterion,get_optimizer
+from src.config import *
 from src.models.model import get_model, get_feature_extractor
 from src.data.dataset import get_data_loaders
 
@@ -68,6 +68,11 @@ def main():
 
     criterion = get_criterion(config['training']['criterion'])
     optimizer = get_optimizer(config['training']['optimizer'], model.parameters())
+    scheduler = get_lr_scheduler(optimizer, config['training']['lr_scheduler'])
+
+    best_val_loss = float('inf')
+    patience_counter = 0
+    early_stopping_config = config['training']['early_stopping']
 
     for epoch in range(config['training']['num_epochs']):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
@@ -77,8 +82,28 @@ def main():
         print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
         print(f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
-    # 모델 저장
+        # Learning rate scheduler step
+        if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            scheduler.step(val_loss)
+        else:
+            scheduler.step()
+
+        # Early stopping check
+        if val_loss < best_val_loss - early_stopping_config['min_delta']:
+            best_val_loss = val_loss
+            patience_counter = 0
+            # Save the best model
+            torch.save(model.state_dict(), f"{config['paths']['save_dir']}/best_model.pth")
+        else:
+            patience_counter += 1
+
+        if patience_counter >= early_stopping_config['patience']:
+            print(f"Early stopping triggered after {epoch+1} epochs")
+            break
+
+    # 최종 모델 저장
     torch.save(model.state_dict(), f"{config['paths']['save_dir']}/final_model.pth")
+
 
 if __name__ == "__main__":
     main()

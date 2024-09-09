@@ -3,6 +3,8 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
 def load_config(config_path):
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
@@ -46,6 +48,11 @@ def get_optimizer(optimizer_config, model_parameters):
     elif optimizer_name == "SGD":
         return optim.SGD(model_parameters, lr=config['training']['learning_rate'], 
                          momentum=0.9, weight_decay=optimizer_config['weight_decay'])
-    # 다른 옵티마이저들을 여기에 추가할 수 있습니다.
     else:
         raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+    
+
+def get_lr_scheduler(optimizer, config):
+    scheduler_config = config['lr_scheduler']
+    if scheduler_config['name'] == 'ReduceLROnPlateau':
+        return ReduceLROnPlateau(optimizer, factor=scheduler_config['factor'], patience=scheduler_config['patience'], min_lr=scheduler_config['min_lr'])
