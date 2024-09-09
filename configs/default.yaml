@@ -27,5 +27,5 @@ training:
     min_delta: 0.001
 
 paths:
-  save_dir: "./saved_models"
-  log_dir: "./logs"
+  save_dir: "./outputs/saved_models"
+  log_dir: "./outputs/logs"
