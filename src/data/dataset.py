@@ -31,7 +31,7 @@ def get_transform():
 
 def get_full_dataset(config):
     # 데이터셋 로드
-    raw_dataset = load_dataset(config['data']['data_dir'])['train']
+    raw_dataset = load_dataset(config['data']['data_dir'], trust_remote_code=True)['train']
     transform = get_transform()
 
     # SketchDataset 인스턴스 생성

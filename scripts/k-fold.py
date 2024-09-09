@@ -2,14 +2,13 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from sklearn.model_selection import KFold
-from src.config import get_config
-from src.models import get_model
-from src.data import get_data_loaders, get_feature_extractor, get_full_dataset
-from src.utils import get_criterion, get_optimizer, get_lr_scheduler, Subset
+from src.config import *
+from src.models.model import get_model, get_feature_extractor
+from src.data.dataset import get_data_loaders, get_full_dataset
 import numpy as np
 import torch
 import tqdm
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 
 def train_one_epoch(model, dataloader, criterion, optimizer, device):
     model.train()
