@@ -7,7 +7,7 @@ import torch.optim as optim
 from tqdm import tqdm
 
 from src.config import get_config,get_criterion,get_optimizer
-from src.models.resnet18 import get_model, get_feature_extractor
+from src.models.model import get_model, get_feature_extractor
 from src.data.dataset import get_data_loaders
 
 def train_one_epoch(model, dataloader, criterion, optimizer, device):
