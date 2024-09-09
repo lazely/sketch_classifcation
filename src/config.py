@@ -52,7 +52,7 @@ def get_optimizer(optimizer_config, model_parameters):
         raise ValueError(f"Unsupported optimizer: {optimizer_name}")
     
 
-def get_lr_scheduler(optimizer, config):
-    scheduler_config = config['lr_scheduler']
+def get_lr_scheduler(optimizer, scheduler_config):
+
     if scheduler_config['name'] == 'ReduceLROnPlateau':
         return ReduceLROnPlateau(optimizer, factor=scheduler_config['factor'], patience=scheduler_config['patience'], min_lr=scheduler_config['min_lr'])
