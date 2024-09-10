@@ -14,6 +14,7 @@ training:
   batch_size: 32
   num_epochs: 30
   learning_rate: 0.001
+  n_splits: 5
   device: "cuda"
   criterion: "CrossEntropyLoss"
   optimizer:
