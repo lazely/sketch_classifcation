@@ -1,10 +1,12 @@
 data:
   data_dir: "imagenet_sketch"
   train_dir: "./data/train"
+  train_info_file: "./data/train.csv"
   test_dir: "./data/test"
+  test_info_file: "./data/test.csv"
 
 model:
-  name: "eff7"
+  name: "eff4"
   pretrained: true
   num_classes: 1000
 

@@ -1,59 +1,124 @@
+import os
+import cv2
+import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import KFold
 from torchvision import transforms
-from datasets import load_dataset
-from PIL import Image
-
-class SketchDataset(Dataset):
-    def __init__(self, dataset, transform=None):
-        self.dataset = dataset
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, idx):
-        item = self.dataset[idx]
-        image = Image.open(item['image'].convert('RGB'))
-        label = item['label']
-
-        if self.transform:
-            image = self.transform(image)
-
-        return {'pixel_values': image, 'label': label}
+from typing import Union, Tuple, Callable
 
 def get_transform():
     return transforms.Compose([
+        transforms.ToPILImage(),
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-def get_full_dataset(config):
-    # 데이터셋 로드
-    raw_dataset = load_dataset(config['data']['data_dir'], trust_remote_code=True)['train']
-    transform = get_transform()
+class CustomDataset(Dataset):
+    def __init__(
+        self, 
+        root_dir: str, 
+        info_file: str, 
+        transform: Callable,
+        is_inference: bool = False
+    ):
+        self.root_dir = root_dir
+        self.transform = transform
+        self.is_inference = is_inference
+        
+        self.info_df = pd.read_csv(info_file)
+        self.image_paths = self.info_df['image_path'].tolist()
+        
+        if not self.is_inference:
+            self.targets = self.info_df['target'].tolist()
 
-    # SketchDataset 인스턴스 생성
-    full_dataset = SketchDataset(raw_dataset, transform=transform)
+    def __len__(self) -> int:
+        return len(self.image_paths)
 
-    return full_dataset
+    def __getitem__(self, index: int) -> Union[Tuple[torch.Tensor, int], torch.Tensor]:
+        img_path = os.path.join(self.root_dir, self.image_paths[index])
+        image = cv2.imread(img_path, cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = self.transform(image)
+
+        if self.is_inference:
+            return image
+        else:
+            target = self.targets[index]
+            return image, target
 
 def get_data_loaders(config):
-    # 데이터셋 로드
-    raw_dataset = load_dataset(config['data']['data_dir'])['train']
-    transform = get_transform()
+    train_dataset = CustomDataset(
+        root_dir=config['data']['train_dir'],
+        info_file=config['data']['train_info_file'],
+        transform=get_transform()
+    )
 
-    # 전체 데이터셋 생성
-    full_dataset = SketchDataset(raw_dataset, transform=transform)
+    train_size = int(0.8 * len(train_dataset))
+    val_size = len(train_dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
 
-    # 학습 및 검증 데이터셋 분할
-    train_size = int(0.8 * len(full_dataset))
-    val_size = len(full_dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size])
-
-    # DataLoader 생성
-    train_loader = DataLoader(train_dataset, batch_size=config['training']['batch_size'], shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=config['training']['batch_size'], shuffle=False, num_workers=4)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=config['training']['batch_size'],
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=config['training']['batch_size'],
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True
+    )
 
     return train_loader, val_loader
+
+def get_kfold_loaders(config: dict, n_splits: int = 5):
+    dataset = CustomDataset(
+        root_dir=config['data']['train_dir'],
+        info_file=config['data']['train_info_file'],
+        transform=get_transform()
+    )
+    kfold = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    
+    for fold, (train_idx, val_idx) in enumerate(kfold.split(dataset)):
+        train_dataset = torch.utils.data.Subset(dataset, train_idx)
+        val_dataset = torch.utils.data.Subset(dataset, val_idx)
+        
+        train_loader = DataLoader(
+            train_dataset, 
+            batch_size=config['training']['batch_size'], 
+            shuffle=True, 
+            num_workers=4, 
+            pin_memory=True
+        )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=config['training']['batch_size'],
+            shuffle=False, 
+            num_workers=4,
+            pin_memory=True
+        )
+        
+        yield fold, train_loader, val_loader
+
+def get_inference_loader(config: dict):
+    dataset = CustomDataset(
+        root_dir=config['data']['test_dir'],
+        info_file=config['data']['test_info_file'],
+        transform=get_transform(),
+        is_inference=True
+    )
+    
+    loader = DataLoader(
+        dataset,
+        batch_size=config['inference']['batch_size'],
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True
+    )
+    
+    return loader
