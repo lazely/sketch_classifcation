@@ -89,7 +89,7 @@ def main():
             if val_loss < best_val_loss - early_stopping_config['min_delta']:
                 best_val_loss = val_loss
                 patience_counter = 0
-                torch.save(model.state_dict(), f"{config['paths']['save_dir']}/kfolds/best_model_fold{fold+1}.pth")
+                torch.save(model.state_dict(), f"{config['paths']['save_dir']}/best_model_fold{fold+1}.pth")
             else:
                 patience_counter += 1
 
@@ -97,7 +97,7 @@ def main():
                 print(f"Early stopping triggered after {epoch+1} epochs")
                 break
 
-        torch.save(model.state_dict(), f"{config['paths']['save_dir']}/kfolds/final_model_fold{fold+1}.pth")
+        torch.save(model.state_dict(), f"{config['paths']['save_dir']}/final_model_fold{fold+1}.pth")
 
 if __name__ == "__main__":
     main()

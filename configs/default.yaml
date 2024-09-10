@@ -30,5 +30,5 @@ training:
     min_delta: 0.001
 
 paths:
-  save_dir: "./outputs/saved_models"
+  save_dir: "./outputs/kfolds"
   log_dir: "./outputs/logs"
