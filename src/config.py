@@ -36,7 +36,6 @@ def get_paths_config():
 def get_criterion(criterion_name):
     if criterion_name == "CrossEntropyLoss":
         return nn.CrossEntropyLoss()
-    # 다른 손실 함수들을 여기에 추가할 수 있습니다.
     else:
         raise ValueError(f"Unsupported criterion: {criterion_name}")
 
@@ -54,5 +53,14 @@ def get_optimizer(optimizer_config, model_parameters):
 
 def get_lr_scheduler(optimizer, scheduler_config):
 
-    if scheduler_config['name'] == 'ReduceLROnPlateau':
-        return ReduceLROnPlateau(optimizer, factor=scheduler_config['factor'], patience=scheduler_config['patience'], min_lr=scheduler_config['min_lr'])
+    if scheduler_config['name'] == "ReduceLROnPlateau":
+        return ReduceLROnPlateau(
+            optimizer,
+            mode='min',
+            factor=float(scheduler_config['factor']),
+            patience=int(scheduler_config['patience']),
+            min_lr=float(scheduler_config['min_lr'])
+        )
+
+    else:
+        raise ValueError(f"Unsupported lr scheduler: {scheduler_config['name']}")
