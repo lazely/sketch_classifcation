@@ -6,7 +6,9 @@ __pycache__/
 # C extensions
 *.so
 data/
-outputs/
+outputs/saved_models/
+outputs/kfolds/
+
 # Distribution / packaging
 .Python
 build/
