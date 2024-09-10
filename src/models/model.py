@@ -1,30 +1,59 @@
 from transformers import AutoImageProcessor, ResNetForImageClassification, ViTForImageClassification, ConvNextForImageClassification, EfficientNetForImageClassification
+import timm
 import torch.nn as nn
 
 def get_model(config):
+    # model_config = config['model']
+    # model = None
+    # num_classes = model_config['num_classes']
+    # if(model_config['name'] == "resnet"):
+    #     model = ResNetForImageClassification.from_pretrained("microsoft/resnet-18")
+    # elif(model_config['name'] == "ViT"):
+    #     model = ViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
+    # elif(model_config['name'] == 'ConvN'):
+    #     model = ConvNextForImageClassification.from_pretrained("facebook/convnext-tiny-224")
+    # elif(model_config['name'] == 'eff3'):
+    #     model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b3")
+    # elif(model_config['name'] == 'eff4'):
+    #     model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b4")
+    # elif(model_config['name'] == 'eff5'):
+    #     model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b5")
+    # elif(model_config['name'] == 'eff6'):
+    #     model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b6")
+    # elif(model_config['name'] == 'eff7'):
+    #     model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b7")
+    # # 모델 분류 층 수정
+    # if model:
+    #     model = modify_classification_layer(model, num_classes)
+    
+    # return model
+
     model_config = config['model']
     model = None
     num_classes = model_config['num_classes']
+    # 대표 설정
     if(model_config['name'] == "resnet"):
-        model = ResNetForImageClassification.from_pretrained("microsoft/resnet-18")
+        model = timm.create_model('resnet50', pretrained=True, num_classes=num_classes)
     elif(model_config['name'] == "ViT"):
-        model = ViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
+        model = timm.create_model('vit_mediumd_patch16_reg4_gap_256', pretrained=True, num_classes=num_classes)
     elif(model_config['name'] == 'ConvN'):
-        model = ConvNextForImageClassification.from_pretrained("facebook/convnext-tiny-224")
+        model = timm.create_model('convnext_base', pretrained=True, num_classes=num_classes)
     elif(model_config['name'] == 'eff3'):
-        model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b3")
+        model = timm.create_model('efficientnet_b3', pretrained=True, num_classes=num_classes)
     elif(model_config['name'] == 'eff4'):
-        model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b4")
+        model = timm.create_model('efficientnet_b4', pretrained=True, num_classes=num_classes)
     elif(model_config['name'] == 'eff5'):
-        model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b5")
+        model = timm.create_model('efficientnet_b5', pretrained=True, num_classes=num_classes)
     elif(model_config['name'] == 'eff6'):
-        model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b6")
+        model = timm.create_model('efficientnet_b6', pretrained=True, num_classes=num_classes)
     elif(model_config['name'] == 'eff7'):
-        model = EfficientNetForImageClassification.from_pretrained("google/efficientnet-b7")
+        model = timm.create_model('efficientnet_b7', pretrained=True, num_classes=num_classes)
+    else:
+        model = timm.create_model(model_config['name'], pretrained=True, num_classes=num_classes)
     # 모델 분류 층 수정
     if model:
         model = modify_classification_layer(model, num_classes)
-    
+
     return model
 
 def get_feature_extractor(config):
