@@ -6,17 +6,17 @@ data:
   test_info_file: "./data/test.csv"
 
 model:
-  name: "eff4"
-  pretrained: true
+  name: "eff7"
+  pretrained: false
   num_classes: 1000
 
 training:
   mode : "train"
   batch_size: 32
   validation_ratio : 0.2
-  num_epochs: 10
+  num_epochs: 50
   additional_train: True
-  additional_epochs: 3
+  additional_epochs: 5
   learning_rate: 0.001
   n_splits: 5
   device: "cuda"
