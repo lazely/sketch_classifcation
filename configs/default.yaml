@@ -13,6 +13,7 @@ model:
 training:
   mode : "train"
   batch_size: 32
+  validation_ratio : 0.2
   num_epochs: 30
   learning_rate: 0.001
   n_splits: 5
