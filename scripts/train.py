@@ -81,6 +81,7 @@ def main():
     patience_counter = 0
     early_stopping_config = config['training']['early_stopping']
 
+    # 메인 트레이닝 루프
     for epoch in range(config['training']['num_epochs']):
         train_loss, train_metric = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
         val_loss, val_metric = validate(model, val_loader, criterion, device, metric_fn)
@@ -109,6 +110,21 @@ def main():
         if patience_counter >= early_stopping_config['patience']:
             print(f"Early stopping triggered after {epoch+1} epochs")
             break
+
+    
+    #추가 학습 루프
+    if config['training']['additional_train']:
+        print("Main training completed. Starting additional epochs with swapped datasets.")
+        train_loader, val_loader = val_loader, train_loader
+        additional_epochs = config['training']['additional_epochs']
+
+        for epoch in range(additional_epochs):
+            train_loss, train_metric = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
+            val_loss, val_metric = validate(model, val_loader, criterion, device, metric_fn)
+
+            print(f"Additional Epoch {epoch+1}/{additional_epochs}")
+            print(f"Train Loss: {train_loss:.4f}, Train Metric: {train_metric:.4f}")
+            print(f"Val Loss: {val_loss:.4f}, Val Metric: {val_metric:.4f}")
 
     torch.save(model.state_dict(), f"{config['paths']['save_dir']}/final_model.pth")
 

@@ -8,6 +8,7 @@ __pycache__/
 data/
 outputs/saved_models/*.pth
 outputs/kfolds/*.pth
+tests/
 
 # Distribution / packaging
 .Python

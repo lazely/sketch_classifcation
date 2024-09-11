@@ -22,7 +22,7 @@ def main():
 
     model.load_state_dict(
         torch.load(
-            os.path.join(config['paths']['save_dir'],"best_model_eff4.pth"),
+            os.path.join(config['paths']['save_dir'],"final_model.pth"),
             map_location='cpu'
         )
     )
