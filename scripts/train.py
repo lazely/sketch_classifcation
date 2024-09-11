@@ -1,15 +1,17 @@
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from tqdm import tqdm
 
 from src.config import *
 from src.models.model import get_model, get_feature_extractor
 from src.data.dataset import get_data_loaders
 from src.utils.metrics import get_metric_function
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from tqdm import tqdm
+
 
 def train_one_epoch(model, dataloader, criterion, optimizer, device, metric_fn):
     model.train()

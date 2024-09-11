@@ -4,6 +4,15 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import random
+import numpy as np
+
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
@@ -20,6 +29,7 @@ def get_config(config_name='default'):
     return config
 
 config = get_config()
+set_random_seed(config['random_seed'])
 
 def get_data_config():
     return config['data']

@@ -36,11 +36,11 @@ training:
     patience: 5
     min_delta: 0.001
     evidence: 'loss'
-    monitor: 'metric'
-  
-  
+    monitor: 'metric'  
 
 paths:
   save_dir: "./outputs/saved_models"
   log_dir: "./outputs/logs"
   output_dir: "./tests"
+
+random_seed: 20010316
