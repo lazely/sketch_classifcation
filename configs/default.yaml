@@ -11,6 +11,7 @@ model:
   num_classes: 1000
 
 training:
+  mode : "train"
   batch_size: 32
   num_epochs: 30
   learning_rate: 0.001
@@ -30,5 +31,6 @@ training:
     min_delta: 0.001
 
 paths:
-  save_dir: "./outputs/kfolds"
+  save_dir: "./outputs/saved_models"
   log_dir: "./outputs/logs"
+  output_dir: "./tests"

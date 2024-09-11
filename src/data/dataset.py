@@ -7,13 +7,21 @@ from sklearn.model_selection import KFold
 from torchvision import transforms
 from typing import Union, Tuple, Callable
 
-def get_transform():
-    return transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+def get_transform(is_train=True):
+    if is_train:
+        return transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+    else:
+        return transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
 
 class CustomDataset(Dataset):
     def __init__(
@@ -47,6 +55,20 @@ class CustomDataset(Dataset):
         else:
             target = self.targets[index]
             return image, target
+def get_test_loaders(config):
+    dataset = CustomDataset(
+        root_dir=config['data']['test_dir'],
+        info_file=config['data']['test_info_file'],
+        transform=get_transform(is_train=False),
+        is_inference=True
+    )
+    test_data_loaders = DataLoader(
+        dataset,
+        batch_size=config['training']['batch_size'],
+        shuffle=False,
+        drop_last=False
+    )
+    return test_data_loaders
 
 def get_data_loaders(config):
     train_dataset = CustomDataset(
