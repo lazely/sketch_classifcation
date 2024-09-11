@@ -18,18 +18,27 @@ training:
   learning_rate: 0.001
   n_splits: 5
   device: "cuda"
+  metric: "accuracy"
+
   criterion: "CrossEntropyLoss"
   optimizer:
     name: "Adam"
     weight_decay: 0.0001
+
   lr_scheduler:
     name: "ReduceLROnPlateau"
     factor: 0.1
     patience: 3
     min_lr: 1e-6
+    monitor: 'metric'
+
   early_stopping:
     patience: 5
     min_delta: 0.001
+    evidence: 'loss'
+    monitor: 'metric'
+  
+  
 
 paths:
   save_dir: "./outputs/saved_models"

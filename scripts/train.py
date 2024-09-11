@@ -9,12 +9,13 @@ from tqdm import tqdm
 from src.config import *
 from src.models.model import get_model, get_feature_extractor
 from src.data.dataset import get_data_loaders
+from src.utils.metrics import get_metric_function
 
-def train_one_epoch(model, dataloader, criterion, optimizer, device):
+def train_one_epoch(model, dataloader, criterion, optimizer, device, metric_fn):
     model.train()
     total_loss = 0
-    correct = 0
-    total = 0
+    all_outputs = []
+    all_labels = []
 
     for batch in tqdm(dataloader, desc="Training"):
         inputs, labels = batch
@@ -30,17 +31,18 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         optimizer.step()
 
         total_loss += loss.item()
-        _, predicted = logits.max(1)
-        total += labels.size(0)
-        correct += predicted.eq(labels).sum().item()
+        all_outputs.extend(logits.detach().cpu().numpy())
+        all_labels.extend(labels.cpu().numpy())
 
-    return total_loss / len(dataloader), correct / total
+    epoch_loss = total_loss / len(dataloader)
+    epoch_metric = metric_fn.calculate(all_outputs, all_labels)
+    return epoch_loss, epoch_metric
 
-def validate(model, dataloader, criterion, device):
+def validate(model, dataloader, criterion, device, metric_fn):
     model.eval()
     total_loss = 0
-    correct = 0
-    total = 0
+    all_outputs = []
+    all_labels = []
 
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Validating"):
@@ -51,12 +53,12 @@ def validate(model, dataloader, criterion, device):
             loss = criterion(logits, labels)
 
             total_loss += loss.item()
-            _, predicted = logits.max(1)
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
+            all_outputs.extend(logits.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
 
-    return total_loss / len(dataloader), correct / total
-
+    epoch_loss = total_loss / len(dataloader)
+    epoch_metric = metric_fn.calculate(all_outputs, all_labels)
+    return epoch_loss, epoch_metric
 
 def main():
     config = get_config()
@@ -70,30 +72,34 @@ def main():
     criterion = get_criterion(config['training']['criterion'])
     optimizer = get_optimizer(config['training']['optimizer'], model.parameters())
     scheduler = get_lr_scheduler(optimizer, config['training']['lr_scheduler'])
+    
+    metric_fn = get_metric_function(config['training']['metric'])
 
-    best_val_loss = float('inf')
+    best_val_metric = metric_fn.worst_value
     patience_counter = 0
     early_stopping_config = config['training']['early_stopping']
 
     for epoch in range(config['training']['num_epochs']):
-        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_acc = validate(model, val_loader, criterion, device)
+        train_loss, train_metric = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
+        val_loss, val_metric = validate(model, val_loader, criterion, device, metric_fn)
 
         print(f"Epoch {epoch+1}/{config['training']['num_epochs']}")
-        print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
-        print(f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+        print(f"Train Loss: {train_loss:.4f}, Train Metric: {train_metric:.4f}")
+        print(f"Val Loss: {val_loss:.4f}, Val Metric: {val_metric:.4f}")
 
-        # Learning rate scheduler step
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            scheduler.step(val_loss)
+            if config['training']['lr_scheduler']['monitor'] == 'loss':
+                scheduler.step(val_loss)
+            else:
+                scheduler.step(val_metric)
         else:
             scheduler.step()
 
-        # Early stopping check
-        if val_loss < best_val_loss - early_stopping_config['min_delta']:
-            best_val_loss = val_loss
+        early_stop_value = val_loss if config['training']['early_stopping']['monitor'] == 'loss' else val_metric
+        if metric_fn.is_better(early_stop_value, best_val_metric, early_stopping_config['min_delta']):
+            best_val_metric = early_stop_value
             patience_counter = 0
-            # Save the best model
+            
             torch.save(model.state_dict(), f"{config['paths']['save_dir']}/best_model.pth")
         else:
             patience_counter += 1
@@ -102,9 +108,7 @@ def main():
             print(f"Early stopping triggered after {epoch+1} epochs")
             break
 
-    # 최종 모델 저장
     torch.save(model.state_dict(), f"{config['paths']['save_dir']}/final_model.pth")
-
 
 if __name__ == "__main__":
     main()
