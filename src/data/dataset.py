@@ -6,12 +6,26 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import KFold
 from torchvision import transforms
 from typing import Union, Tuple, Callable
+from src.data.augmentation import get_augmentation, apply_augmentation
+import numpy as np
 
-def get_transform(is_train=True):
+class AugmentationWrapper:
+    def __init__(self, augmentation):
+        self.augmentation = augmentation
+
+    def __call__(self, img):
+        np_img = np.array(img)
+        augmented = apply_augmentation(np_img, self.augmentation)
+        # Convert back to PIL Image
+        return transforms.ToPILImage()(augmented)
+
+def get_transform(config, is_train=True):
     if is_train:
+        augmentation = get_augmentation(config)
         return transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((224, 224)),
+            AugmentationWrapper(augmentation),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
@@ -22,7 +36,7 @@ def get_transform(is_train=True):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
-
+    
 class CustomDataset(Dataset):
     def __init__(
         self, 
@@ -74,7 +88,7 @@ def get_data_loaders(config):
     train_dataset = CustomDataset(
         root_dir=config['data']['train_dir'],
         info_file=config['data']['train_info_file'],
-        transform=get_transform()
+        transform=get_transform(config)
     )
 
     train_size = int((1-config['training']['validation_ratio']) * len(train_dataset))
