@@ -1,1 +1,7 @@
 timm == 1.0.3
+transformers
+torch
+opencv-python
+pandas
+scikit-learn
+albumentations

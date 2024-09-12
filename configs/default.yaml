@@ -41,8 +41,7 @@ training:
     monitor: 'metric'  
 
   augmentation:
-    flip: 0
-    crop: 0
+    flip: 0.5
 
 paths:
   save_dir: "./outputs/saved_models"
