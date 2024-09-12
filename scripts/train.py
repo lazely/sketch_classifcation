@@ -7,14 +7,13 @@ from src.config import *
 from src.models.model import get_model, get_feature_extractor
 from src.data.dataset import get_data_loaders
 from src.utils.metrics import get_metric_function
-from sklearn.metrics import accuracy_score
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 
-def calculate_class_loss_accuracy(y_true, y_pred, criterion):
+def calculate_class_loss_metric(y_true, y_pred, criterion, metric_fn):
     classes = np.unique(y_true)
     class_losses = {}
     class_accuracies = {}
@@ -34,11 +33,9 @@ def calculate_class_loss_accuracy(y_true, y_pred, criterion):
         loss = criterion(class_preds_tensor, class_labels_tensor).item()
         class_losses[cls] = loss / size
 
-        # Calculate accuracy
-        accuracy = accuracy_score(class_labels, np.argmax(class_preds.cpu().numpy(), axis=1))
+        # Calculate accuracy using the specified metric function
+        accuracy = metric_fn.calculate(class_preds.cpu().numpy(), class_labels)
         class_accuracies[cls] = accuracy
-
-    return class_losses, class_accuracies
 
 def train_one_epoch(model, dataloader, criterion, optimizer, device, metric_fn):
     model.train()
@@ -67,10 +64,11 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, metric_fn):
     epoch_metric = metric_fn.calculate(all_outputs, all_labels)
 
     # Calculate class-wise loss and accuracy
-    class_losses, class_accuracies = calculate_class_loss_accuracy(
+    class_losses, class_accuracies = calculate_class_loss_metric(
         np.array(all_labels), 
         torch.tensor(np.array(all_outputs)).to(device), 
-        criterion
+        criterion,
+        metric_fn
     )
 
     return epoch_loss, epoch_metric, class_losses, class_accuracies
@@ -98,10 +96,11 @@ def validate(model, dataloader, criterion, device, metric_fn):
     epoch_metric = metric_fn.calculate(all_outputs, all_labels)
 
     # Calculate class-wise loss and accuracy
-    class_losses, class_accuracies = calculate_class_loss_accuracy(
+    class_losses, class_accuracies = calculate_class_loss_metric(
         np.array(all_labels), 
         torch.tensor(np.array(all_outputs)).to(device), 
-        criterion
+        criterion,
+        metric_fn
     )
 
     return epoch_loss, epoch_metric, class_losses, class_accuracies
