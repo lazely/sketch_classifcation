@@ -1,17 +1,44 @@
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
+import numpy as np
 
 from src.config import *
 from src.models.model import get_model, get_feature_extractor
 from src.data.dataset import get_data_loaders
 from src.utils.metrics import get_metric_function
+from sklearn.metrics import accuracy_score
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 
+def calculate_class_loss_accuracy(y_true, y_pred, criterion):
+    classes = np.unique(y_true)
+    class_losses = {}
+    class_accuracies = {}
+
+    for cls in classes:
+        indices = np.where(y_true == cls)
+        size = len(indices[0])
+        if size == 0:
+            continue
+
+        class_labels = y_true[indices]
+        class_preds = y_pred[indices]
+        
+        # Calculate loss
+        class_labels_tensor = torch.tensor(class_labels).to(y_pred.device)
+        class_preds_tensor = y_pred[indices]
+        loss = criterion(class_preds_tensor, class_labels_tensor).item()
+        class_losses[cls] = loss / size
+
+        # Calculate accuracy
+        accuracy = accuracy_score(class_labels, np.argmax(class_preds.cpu().numpy(), axis=1))
+        class_accuracies[cls] = accuracy
+
+    return class_losses, class_accuracies
 
 def train_one_epoch(model, dataloader, criterion, optimizer, device, metric_fn):
     model.train()
@@ -38,7 +65,16 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, metric_fn):
 
     epoch_loss = total_loss / len(dataloader)
     epoch_metric = metric_fn.calculate(all_outputs, all_labels)
-    return epoch_loss, epoch_metric
+
+    # Calculate class-wise loss and accuracy
+    class_losses, class_accuracies = calculate_class_loss_accuracy(
+        np.array(all_labels), 
+        torch.tensor(np.array(all_outputs)).to(device), 
+        criterion
+    )
+
+    return epoch_loss, epoch_metric, class_losses, class_accuracies
+
 
 def validate(model, dataloader, criterion, device, metric_fn):
     model.eval()
@@ -60,7 +96,16 @@ def validate(model, dataloader, criterion, device, metric_fn):
 
     epoch_loss = total_loss / len(dataloader)
     epoch_metric = metric_fn.calculate(all_outputs, all_labels)
-    return epoch_loss, epoch_metric
+
+    # Calculate class-wise loss and accuracy
+    class_losses, class_accuracies = calculate_class_loss_accuracy(
+        np.array(all_labels), 
+        torch.tensor(np.array(all_outputs)).to(device), 
+        criterion
+    )
+
+    return epoch_loss, epoch_metric, class_losses, class_accuracies
+
 
 def main():
     config = get_config()
@@ -83,12 +128,17 @@ def main():
 
     # 메인 트레이닝 루프
     for epoch in range(config['training']['num_epochs']):
-        train_loss, train_metric = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
-        val_loss, val_metric = validate(model, val_loader, criterion, device, metric_fn)
+        train_loss, train_metric, train_class_losses, train_class_accuracies = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
+        val_loss, val_metric, val_class_losses, val_class_accuracies = validate(model, val_loader, criterion, device, metric_fn)
 
         print(f"Epoch {epoch+1}/{config['training']['num_epochs']}")
         print(f"Train Loss: {train_loss:.4f}, Train Metric: {train_metric:.4f}")
         print(f"Val Loss: {val_loss:.4f}, Val Metric: {val_metric:.4f}")
+
+        print("Train Class Losses:", train_class_losses)
+        print("Train Class Accuracies:", train_class_accuracies)
+        print("Val Class Losses:", val_class_losses)
+        print("Val Class Accuracies:", val_class_accuracies)
 
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             if config['training']['lr_scheduler']['monitor'] == 'loss':
@@ -114,17 +164,21 @@ def main():
     
     #추가 학습 루프
     if config['training']['additional_train']:
-        print("Main training completed. Starting additional epochs with swapped datasets.")
         train_loader, val_loader = val_loader, train_loader
         additional_epochs = config['training']['additional_epochs']
 
         for epoch in range(additional_epochs):
-            train_loss, train_metric = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
-            val_loss, val_metric = validate(model, val_loader, criterion, device, metric_fn)
+            train_loss, train_metric, train_class_losses, train_class_accuracies = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
+            val_loss, val_metric, val_class_losses, val_class_accuracies = validate(model, val_loader, criterion, device, metric_fn)
 
             print(f"Additional Epoch {epoch+1}/{additional_epochs}")
             print(f"Train Loss: {train_loss:.4f}, Train Metric: {train_metric:.4f}")
             print(f"Val Loss: {val_loss:.4f}, Val Metric: {val_metric:.4f}")
+            
+            print("Train Class Losses:", train_class_losses)
+            print("Train Class Accuracies:", train_class_accuracies)
+            print("Val Class Losses:", val_class_losses)
+            print("Val Class Accuracies:", val_class_accuracies)
 
     torch.save(model.state_dict(), f"{config['paths']['save_dir']}/final_model.pth")
 
