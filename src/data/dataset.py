@@ -14,23 +14,33 @@ class AugmentationWrapper:
         self.augmentation = augmentation
 
     def __call__(self, img):
+        # Convert PIL image to numpy array
         np_img = np.array(img)
-        augmented = apply_augmentation(np_img, self.augmentation)
-        # Convert back to PIL Image
-        return transforms.ToPILImage()(augmented)
+        
+        # Apply each augmentation sequentially
+        for aug in self.augmentation:
+            np_img = apply_augmentation(np_img, aug)
+        
+        # Convert back to PIL Image after augmentations
+        return transforms.ToPILImage()(np_img)
 
 def get_transform(config, is_train=True):
     if is_train:
-        augmentation = get_augmentation(config)
+        augmentation = get_augmentation(config['training'])
         
         return transforms.Compose([
+            transforms.ToPILImage(),
             transforms.Resize((224, 224)),
             AugmentationWrapper(augmentation),
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
     else:
         return transforms.Compose([
+            transforms.ToPILImage(),
             transforms.Resize((224, 224)),
+            transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
     
@@ -39,28 +49,48 @@ class CustomDataset(Dataset):
         self, 
         root_dir: str, 
         info_file: str, 
+        augmented_dir: str,
+        augmented_info_file: str,
         transform: Callable,
         is_inference: bool = False
     ):
         self.root_dir = root_dir
+        self.augmented_dir = augmented_dir
         self.transform = transform
         self.is_inference = is_inference
         
+        # Read original data
         self.info_df = pd.read_csv(info_file)
         self.image_paths = self.info_df['image_path'].tolist()
         
+        # Read augmented data
+        self.augmented_df = pd.read_csv(augmented_info_file)
+        self.augmented_image_paths = self.augmented_df['image_path'].tolist()
+        
+        # Combine original and augmented data
+        self.all_image_paths = self.image_paths + self.augmented_image_paths
+        
         if not self.is_inference:
-            self.targets = self.info_df['target'].tolist()
+            self.targets = self.info_df['target'].tolist() + self.augmented_df['target'].tolist()
 
     def __len__(self) -> int:
-        return len(self.image_paths)
+        return len(self.all_image_paths)
 
     def __getitem__(self, index: int) -> Union[Tuple[torch.Tensor, int], torch.Tensor]:
-        img_path = os.path.join(self.root_dir, self.image_paths[index])
-        image = cv2.imread(img_path, cv2.IMREAD_COLOR)
+        if index < len(self.image_paths):
+            img_path = os.path.join(self.root_dir, self.all_image_paths[index])
+        else:
+            img_path = os.path.join(self.augmented_dir, self.all_image_paths[index])
         
+        image = cv2.imread(img_path, cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
+        if self.transform is not None:
+            image = self.transform(image)
+
+        if isinstance(image, torch.Tensor):
+            image = image.permute(1, 2, 0).numpy()
+
         image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         image_rgb = cv2.cvtColor(image_gray, cv2.COLOR_GRAY2RGB)
         image_rgb = torch.from_numpy(image_rgb).permute(2, 0, 1).float()
@@ -71,6 +101,7 @@ class CustomDataset(Dataset):
         else:
             target = self.targets[index]
             return image_rgb, target
+
         
 def get_test_loaders(config):
     dataset = CustomDataset(
@@ -91,6 +122,8 @@ def get_data_loaders(config):
     train_dataset = CustomDataset(
         root_dir=config['data']['train_dir'],
         info_file=config['data']['train_info_file'],
+        augmented_dir=config['data']['augmented_dir'],
+        augmented_info_file=config['data']['augmented_info_file'],
         transform=get_transform(config)
     )
 
@@ -119,7 +152,9 @@ def get_kfold_loaders(config: dict, n_splits: int = 5):
     dataset = CustomDataset(
         root_dir=config['data']['train_dir'],
         info_file=config['data']['train_info_file'],
-        transform=get_transform()
+        augmented_dir=config['data']['augmented_dir'],
+        augmented_info_file=config['data']['augmented_info_file'],
+        transform=get_transform(config)
     )
     kfold = KFold(n_splits=n_splits, shuffle=True, random_state=42)
     

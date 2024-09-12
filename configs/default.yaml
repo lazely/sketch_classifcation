@@ -4,7 +4,8 @@ data:
   train_info_file: "./data/train.csv"
   test_dir: "./data/test"
   test_info_file: "./data/test.csv"
-
+  augmented_dir: "./data/augmented"
+  augmented_info_file: "./data/augmented.csv"
 model:
   name: "eff4"
   pretrained: True
@@ -41,7 +42,13 @@ training:
     monitor: 'metric'  
 
   augmentation:
-    flip: 0.5
+    flip: 0.0
+offline_augmentation:
+  augmentation:
+    flip: 1
+    crop: 1
+  ratio: 2
+
 
 paths:
   save_dir: "./outputs/saved_models"
