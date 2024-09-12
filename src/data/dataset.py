@@ -73,7 +73,7 @@ def get_test_loaders(config):
     dataset = CustomDataset(
         root_dir=config['data']['test_dir'],
         info_file=config['data']['test_info_file'],
-        transform=get_transform(is_train=False),
+        transform=get_transform(config,is_train=False),
         is_inference=True
     )
     test_data_loaders = DataLoader(

@@ -6,8 +6,8 @@ data:
   test_info_file: "./data/test.csv"
 
 model:
-  name: "eff7"
-  pretrained: false
+  name: "eff4"
+  pretrained: True
   num_classes: 1000
 
 training:
