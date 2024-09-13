@@ -66,9 +66,12 @@ class CustomDataset(Dataset):
         # Read augmented data
         self.augmented_df = pd.read_csv(augmented_info_file)
         self.augmented_image_paths = self.augmented_df['image_path'].tolist()
-        
+
         # Combine original and augmented data
-        self.all_image_paths = self.image_paths + self.augmented_image_paths
+        if self.is_inference:
+            self.all_image_paths = self.image_paths
+        else:
+            self.all_image_paths = self.image_paths + self.augmented_image_paths
         
         if not self.is_inference:
             self.targets = self.info_df['target'].tolist() + self.augmented_df['target'].tolist()
@@ -84,29 +87,21 @@ class CustomDataset(Dataset):
         
         image = cv2.imread(img_path, cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
-        if self.transform is not None:
-            image = self.transform(image)
+        image = self.transform(image)
 
-        if isinstance(image, torch.Tensor):
-            image = image.permute(1, 2, 0).numpy()
-
-        image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        image_rgb = cv2.cvtColor(image_gray, cv2.COLOR_GRAY2RGB)
-        image_rgb = torch.from_numpy(image_rgb).permute(2, 0, 1).float()
-        
         if self.is_inference:
-            image_rgb = self.transform(image_rgb)
-            return image_rgb
+            return image
         else:
             target = self.targets[index]
-            return image_rgb, target
+            return image, target
 
         
 def get_test_loaders(config):
     dataset = CustomDataset(
         root_dir=config['data']['test_dir'],
         info_file=config['data']['test_info_file'],
+        augmented_dir=config['data']['augmented_dir'],
+        augmented_info_file=config['data']['augmented_info_file'],
         transform=get_transform(config,is_train=False),
         is_inference=True
     )

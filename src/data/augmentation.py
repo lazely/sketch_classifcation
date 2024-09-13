@@ -12,7 +12,7 @@ from albumentations import (
     Compose, RandomCrop, CenterCrop, HorizontalFlip, VerticalFlip, 
     RandomBrightnessContrast, HueSaturationValue, 
     GaussNoise, Blur, OpticalDistortion, GridDistortion, 
-    ElasticTransform, CoarseDropout, Resize
+    ElasticTransform, CoarseDropout, Resize, OneOf
 )
 def get_augmentation(config):
     aug_ops = []
@@ -20,9 +20,12 @@ def get_augmentation(config):
     
     for aug_name, aug_prob in aug_dict.items():
         if aug_name == 'crop':
-            aug_ops.append(Compose([RandomCrop(height=150, width=150, p=aug_prob)]))
+            aug_ops.append(RandomCrop(height=150, width=150, p=aug_prob))
         elif aug_name == 'flip':
-            aug_ops.append(Compose([HorizontalFlip(p=0.5),VerticalFlip(p=0.5)]))
+            aug_ops.append(OneOf([
+                HorizontalFlip(p=0.5),
+                VerticalFlip(p=0.5)
+            ], p=aug_prob))
         elif aug_name == 'brightness_contrast':
             aug_ops.append(RandomBrightnessContrast(p=aug_prob))
         elif aug_name == 'hue_saturation':
@@ -32,13 +35,17 @@ def get_augmentation(config):
         elif aug_name == 'blur':
             aug_ops.append(Blur(blur_limit=7, p=aug_prob))
         elif aug_name == 'distortion':
-            aug_ops.append(OpticalDistortion(p=aug_prob))
-            aug_ops.append(GridDistortion(p=aug_prob))
-            aug_ops.append(ElasticTransform(p=aug_prob))
+            aug_ops.append(OneOf([
+                OpticalDistortion(p=1.0),
+                GridDistortion(p=1.0),
+                ElasticTransform(p=1.0)
+            ], p=aug_prob))
         elif aug_name == 'mask':
             aug_ops.append(CoarseDropout(max_holes=8, max_height=32, max_width=32, p=aug_prob))
 
-    return aug_ops
+    return Compose(aug_ops)
+
+
 
 def apply_augmentation(image, augmentation):
     return augmentation(image=image)['image']

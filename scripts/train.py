@@ -132,10 +132,10 @@ def main():
         print(f"Train Loss: {train_loss:.4f}, Train Metric: {train_metric:.4f}")
         print(f"Val Loss: {val_loss:.4f}, Val Metric: {val_metric:.4f}")
 
-        print("Train Class Losses:", train_class_losses)
-        print("Train Class metric:", train_class_metric)
-        print("Val Class Losses:", val_class_losses)
-        print("Val Class metric:", val_class_metric)
+        #print("Train Class Losses:", train_class_losses)
+        #print("Train Class metric:", train_class_metric)
+        #print("Val Class Losses:", val_class_losses)
+        #print("Val Class metric:", val_class_metric)
 
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             if config['training']['lr_scheduler']['monitor'] == 'loss':
@@ -150,7 +150,7 @@ def main():
             best_val_metric = early_stop_value
             patience_counter = 0
             
-            torch.save(model.state_dict(), f"{config['paths']['save_dir']}/best_model.pth")
+            torch.save(model.state_dict(), f"{config['paths']['save_dir']}/best_model1.pth")
         else:
             patience_counter += 1
 
@@ -172,12 +172,12 @@ def main():
             print(f"Train Loss: {train_loss:.4f}, Train Metric: {train_metric:.4f}")
             print(f"Val Loss: {val_loss:.4f}, Val Metric: {val_metric:.4f}")
             
-            print("Train Class Losses:", train_class_losses)
-            print("Train Class metric:", train_class_metric)
-            print("Val Class Losses:", val_class_losses)
-            print("Val Class metric:", val_class_metric)
+            #print("Train Class Losses:", train_class_losses)
+            #print("Train Class metric:", train_class_metric)
+            #print("Val Class Losses:", val_class_losses)
+            #print("Val Class metric:", val_class_metric)
 
-    torch.save(model.state_dict(), f"{config['paths']['save_dir']}/final_model.pth")
+    torch.save(model.state_dict(), f"{config['paths']['save_dir']}/final_model1.pth")
 
 if __name__ == "__main__":
     main()

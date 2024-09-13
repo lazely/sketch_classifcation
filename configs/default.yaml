@@ -19,7 +19,7 @@ training:
   additional_train: True
   additional_epochs: 5
   learning_rate: 0.001
-  n_splits: 5
+  n_splits: 3
   device: "cuda"
   metric: "accuracy"
 
@@ -42,11 +42,11 @@ training:
     monitor: 'metric'  
 
   augmentation:
-    flip: 0.0
+    noise: 0.5
+    blur : 0.5
 offline_augmentation:
   augmentation:
     flip: 1
-    crop: 1
   ratio: 2
 
 
