@@ -72,6 +72,39 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, metric_fn):
 
     return epoch_loss, epoch_metric, class_losses, class_metric
 
+def identify_model_type(model):
+    model_name = model.__class__.__name__.lower()
+    if 'vit' in model_name:
+        return 'vit'
+    elif 'resnet' in model_name:
+        return 'resnet'
+    elif 'vgg' in model_name:
+        return 'vgg'
+    elif 'efficientnet' in model_name:
+        return 'efficientnet'
+    elif 'convnext' in model_name:
+        return 'convnext'
+    else:
+        return 'unknown'
+    
+def apply_hyperparameters(model, params):
+    model_type = identify_model_type(model)
+
+    if model_type == 'vit':
+        model.head_drop_rate = params['drop_rate']
+        for block in model.blocks:
+            block.drop_rate = params['drop_rate']
+            block.attn.drop = nn.Dropout(params['attn_drop_rate'])
+    elif model_type in ['resnet', 'vgg', 'efficientnet']:
+        for module in model.modules():
+            if isinstance(module, nn.Dropout):
+                module.p = params['drop_rate']
+    elif model_type == 'convnext':
+        for block in model.stages:
+            for layer in model.stages:
+                if hasattr(layer, 'drop_path'):
+                    layer.drop_path.drop_prob = params['drop_path_rate']
+
 
 def validate(model, dataloader, criterion, device, metric_fn):
     model.eval()
@@ -111,6 +144,17 @@ def main():
     model = get_model(config).to(device)
     feature_extractor = get_feature_extractor(config)
 
+    model_type = identify_model_type(model)
+
+    params = {
+        'learning_rate': config['training']['learning_rate'],
+        'batch_size': config['training']['batch_size'],
+        'num_epochs': config['training']['num_epochs'],
+        'drop_rate': config['training']['drop_rate'],
+        'attn_drop_rate': config['training']['attn_drop_rate'],
+        'drop_rate_path': config['training']['drop_rate_path']
+    }
+
     train_loader, val_loader = get_data_loaders(config)
 
     criterion = get_criterion(config['training']['criterion'])
@@ -122,6 +166,8 @@ def main():
     best_val_metric = metric_fn.worst_value
     patience_counter = 0
     early_stopping_config = config['training']['early_stopping']
+
+    apply_hyperparameters(model_type, params)
 
     # 메인 트레이닝 루프
     for epoch in range(config['training']['num_epochs']):

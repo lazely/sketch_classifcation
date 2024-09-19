@@ -10,9 +10,10 @@ import yaml
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 from optuna.samplers import TPESampler
+
 from src.config import *
 from src.utils.metrics import get_metric_function
-from scripts.train import train_one_epoch, validate
+from scripts.train import train_one_epoch, validate, get_data_loaders
 from src.data.dataset import CustomDataset
 from src.models.model import get_model
 
@@ -37,7 +38,6 @@ def identify_model_type(model):
     
 def apply_hyperparameters(model, params):
     model_type = identify_model_type(model)
-
     if model_type == 'vit':
         model.head_drop_rate = params['drop_rate']
         for block in model.blocks:
@@ -55,6 +55,7 @@ def apply_hyperparameters(model, params):
 
 def objective(trial):
     params = {}
+
     for param, settings in hp_config['parameters'].items():
         if settings['type'] == 'log_uniform':
             params[param] = trial.suggest_loguniform(param, float(settings['min']), float(settings['max']))
@@ -66,7 +67,7 @@ def objective(trial):
             params[param] = trial.suggest_categorical(param, settings['values'])
 
     # wandb init
-    wandb.init(project="timm-hyperparameter-optimization", 
+    wandb.init(project="timm-hyperparameter-optimization-ResNet",
                config={
                    "model_name": config['model']['name'],
                    "learning_rate": params['opt_learning_rate'],
@@ -76,30 +77,9 @@ def objective(trial):
                    "attn_drop_rate": params['attn_drop_rate'],
                    "drop_path_rate": params['drop_path_rate']
                }, reinit=True)
-
-    # Dataset
-    transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-
-    train_dataset = CustomDataset(
-        root_dir=config['data']['train_dir'],
-        info_file=config['data']['train_info_file'],
-        augmented_dir=config['data']['augmented_dir'],
-        augmented_info_file=config['data']['augmented_info_file'],
-        transform=transform
-    )
-
-    train_size = int((1-config['training']['validation_ratio']) * len(train_dataset))
-    val_size = len(train_dataset) - train_size
-    train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
-
+    
     # DataLoader
-    train_loader = DataLoader(train_dataset, batch_size=params['opt_batch_size'], shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=params['opt_batch_size'])
+    train_loader, val_loader = get_data_loaders(config)
 
     # 학습
     device = torch.device(config['training']['device'])
@@ -116,10 +96,10 @@ def objective(trial):
     patience_counter = 0
     early_stopping_patience = config['training']['early_stopping']['patience']
     early_stopping_delta = config['training']['early_stopping']['min_delta']
-    
+
     for epoch in range(params['opt_num_epochs']):
-        train_loss, train_metric = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
-        val_loss, val_metric = validate(model, val_loader, criterion, device, metric_fn)
+        train_loss, train_metric, train_class_losses, train_class_metric = train_one_epoch(model, train_loader, criterion, optimizer, device, metric_fn)
+        val_loss, val_metric, val_class_losses, val_class_metric = validate(model, val_loader, criterion, device, metric_fn)
 
         print(f"Epoch {epoch+1}/{params['opt_num_epochs']}")
         print(f"Train Loss: {train_loss:.4f}, Train Metric: {train_metric:.4f}")
@@ -129,7 +109,6 @@ def objective(trial):
             scheduler.step(val_loss)
         else:
             scheduler.step()
-        
         wandb.log({
             "epoch": epoch,
             "train_loss": train_loss,
@@ -148,21 +127,20 @@ def objective(trial):
         if patience_counter >= early_stopping_patience:
             print(f"Early stopping triggered after {epoch + 1} epochs")
             break
-        
+
     wandb.finish()
+
     return best_val_mertric
 
 def optimize_hyperparameters():
     study = optuna.create_study(direction="maximize", sampler=TPESampler())
     study.optimize(objective, n_trials=hp_config['n_trials'])
-
     print("Best trial:")
     trial = study.best_trial
     print("  Value: ", trial.value)
     print("  Params: ")
     for key, value in trial.params.items():
         print("   {}: {}".format(key, value))
-
     return trial.params
 
 if __name__ == "__main__":

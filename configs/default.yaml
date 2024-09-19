@@ -7,21 +7,25 @@ data:
   augmented_dir: "./data/augmented"
   augmented_info_file: "./data/augmented.csv"
 model:
-  name: "ViT"
+  name: "resnet"
   pretrained: True
   num_classes: 1000
 
 training:
   mode : "train"
-  batch_size: 32
+  batch_size: 16
   validation_ratio : 0.2
   num_epochs: 50
   additional_train: True
   additional_epochs: 5
-  learning_rate: 0.001
+  learning_rate: 0.0001939044801896184
   n_splits: 3
   device: "cuda"
   metric: "accuracy"
+  drop_rate: 0.4461988529143907
+  attn_drop_rate: 0.1665896935298184
+  drop_rate_path: 0.05950492951303196
+
 
   criterion: "CrossEntropyLoss"
   optimizer:
