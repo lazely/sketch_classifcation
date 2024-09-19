@@ -33,6 +33,8 @@ def identify_model_type(model):
         return 'efficientnet'
     elif 'convnext' in model_name:
         return 'convnext'
+    elif 'densenet' in model_name:
+        return 'densenet'
     else:
         return 'unknown'
     
@@ -52,6 +54,14 @@ def apply_hyperparameters(model, params):
             for layer in model.stages:
                 if hasattr(layer, 'drop_path'):
                     layer.drop_path.drop_prob = params['drop_path_rate']
+    elif model_type == 'densenet':
+        for module in model.modules():
+            if isinstance(module, nn.Dropout):
+                module.p = params['drop_rate']
+        if hasattr(model, 'growth_rate'):
+            model.growth_rate = params['growth_rate']
+        if hasattr(model, 'compression'):
+            model.compression = params['compression_factor']
 
 def objective(trial):
     params = {}
