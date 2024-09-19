@@ -5,3 +5,5 @@ opencv-python
 pandas
 scikit-learn
 albumentations
+optuna
+wandb

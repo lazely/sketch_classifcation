@@ -7,7 +7,7 @@ data:
   augmented_dir: "./data/augmented"
   augmented_info_file: "./data/augmented.csv"
 model:
-  name: "eff4"
+  name: "ViT"
   pretrained: True
   num_classes: 1000
 
@@ -56,3 +56,30 @@ paths:
   output_dir: "./tests"
 
 random_seed: 20010316
+
+hyperparameter_optimization:
+  n_trials: 30
+  parameters:
+    opt_learning_rate:
+      min: 1e-5
+      max: 1e-1
+      type: "log_uniform"
+    opt_batch_size:
+      values: [16, 32, 64]
+      type: "categorical"
+    opt_num_epochs: 
+      min: 5
+      max: 20
+      type: "int"
+    opt_drop_rate:
+      min: 0.0
+      max: 0.5
+      type: "uniform"
+    attn_drop_rate: # For ViT
+      min: 0.0
+      max: 0.5
+      type: "uniform"
+    drop_path_rate: # For ConvNext
+      min: 0.05
+      max: 0.5
+      type: "uniform"
