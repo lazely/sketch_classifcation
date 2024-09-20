@@ -53,6 +53,9 @@ offline_augmentation:
     flip: 1
   ratio: 2
 
+randaugment:
+  num_ops: 3
+  magnitude: 4
 
 paths:
   save_dir: "./outputs/saved_models"
