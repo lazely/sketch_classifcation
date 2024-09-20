@@ -41,14 +41,14 @@ def identify_model_type(model):
 def apply_hyperparameters(model, params):
     model_type = identify_model_type(model)
     if model_type == 'vit':
-        model.head_drop_rate = params['drop_rate']
+        model.head_drop_rate = params['opt_drop_rate']
         for block in model.blocks:
-            block.drop_rate = params['drop_rate']
+            block.drop_rate = params['opt_drop_rate']
             block.attn.drop = nn.Dropout(params['attn_drop_rate'])
     elif model_type in ['resnet', 'vgg', 'efficientnet']:
         for module in model.modules():
             if isinstance(module, nn.Dropout):
-                module.p = params['drop_rate']
+                module.p = params['opt_drop_rate']
     elif model_type == 'convnext':
         for block in model.stages:
             for layer in model.stages:
@@ -57,7 +57,7 @@ def apply_hyperparameters(model, params):
     elif model_type == 'densenet':
         for module in model.modules():
             if isinstance(module, nn.Dropout):
-                module.p = params['drop_rate']
+                module.p = params['opt_drop_rate']
         if hasattr(model, 'growth_rate'):
             model.growth_rate = params['growth_rate']
         if hasattr(model, 'compression'):

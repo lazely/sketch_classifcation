@@ -104,7 +104,14 @@ def apply_hyperparameters(model, params):
             for layer in model.stages:
                 if hasattr(layer, 'drop_path'):
                     layer.drop_path.drop_prob = params['drop_path_rate']
-
+    elif model_type == 'densenet':
+        for module in model.modules():
+            if isinstance(module, nn.Dropout):
+                module.p = params['drop_rate']
+        if hasattr(model, 'growth_rate'):
+            model.growth_rate = params['growth_rate']
+        if hasattr(model, 'compression'):
+            model.compression = params['compression_factor']
 
 def validate(model, dataloader, criterion, device, metric_fn):
     model.eval()
@@ -152,7 +159,9 @@ def main():
         'num_epochs': config['training']['num_epochs'],
         'drop_rate': config['training']['drop_rate'],
         'attn_drop_rate': config['training']['attn_drop_rate'],
-        'drop_rate_path': config['training']['drop_rate_path']
+        'drop_rate_path': config['training']['drop_rate_path'],
+        'growth_rate': config['training']['growth_rate'],
+        'compression_factor': config['training']['compression_factor'],
     }
 
     train_loader, val_loader = get_data_loaders(config)
