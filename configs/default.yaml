@@ -7,9 +7,6 @@ data:
   augmented_dir: "./data/augmented"
   augmented_info_file: "./data/augmented.csv"
 
-wandb:
-  name: "densnet_train_jm_v1"
-
 model:
   name: "resnet"
   pretrained: True
