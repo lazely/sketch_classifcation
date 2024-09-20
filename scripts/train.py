@@ -84,6 +84,8 @@ def identify_model_type(model):
         return 'efficientnet'
     elif 'convnext' in model_name:
         return 'convnext'
+    elif 'densenet' in model_name:
+        return 'densenet'
     else:
         return 'unknown'
     
