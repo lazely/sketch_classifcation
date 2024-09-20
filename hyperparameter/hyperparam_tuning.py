@@ -85,7 +85,9 @@ def objective(trial):
                    "num_epochs": params['opt_num_epochs'],
                    "drop_rate": params['opt_drop_rate'],
                    "attn_drop_rate": params['attn_drop_rate'],
-                   "drop_path_rate": params['drop_path_rate']
+                   "drop_path_rate": params['drop_path_rate'],
+                   "growth_rate": params['growth_rate'],
+                   "compression": params['compression_factor']
                }, reinit=True)
     
     # DataLoader
