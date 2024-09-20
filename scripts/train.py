@@ -168,13 +168,13 @@ def main(params=None, trial_number=None):
     # 동적 project 명 만들기
     current_date = datetime.datetime.now().strftime("%Y%m%d") # 날짜
     model_name = config['model']['name']
-    batch_size = params['batch_size']
-    unique_id = str(uuid.uuid4())[-2:] # 고유 Key
+    user_name = config['wandb']['user_name']
+    team_name = config['wandb']['team_name']
 
-    project_name = f"{model_name}_bs{batch_size}_{current_date}_{unique_id}"
+    project_name = f"{model_name}_{user_name}_{current_date}"
 
     # wandb 초기화
-    wandb.init(project=project_name, config=params)
+    wandb.init(project=project_name, entity=team_name, config=params)
 
     device = torch.device(config['training']['device'])
     model = get_model(config).to(device)
