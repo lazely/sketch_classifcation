@@ -32,7 +32,7 @@ def get_feature_extractor(config):
     model_config = config['model']
     model = None
     if(model_config['name'] == "resnet"):
-        Extractor = AutoImageProcessor.from_pretrained("microsoft/resnet-18")
+        Extractor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
     elif(model_config['name'] == "ViT"):
         Extractor = AutoImageProcessor.from_pretrained("google/vit-base-patch16-224")
     elif(model_config['name'] == 'ConvN'):
@@ -47,6 +47,8 @@ def get_feature_extractor(config):
         Extractor = AutoImageProcessor.from_pretrained("google/efficientnet-b6")
     elif(model_config['name'] == 'eff7'):
         Extractor = AutoImageProcessor.from_pretrained("google/efficientnet-b7")
+    elif(model_config['name'] == 'densenet'):
+        Extractor = AutoImageProcessor.from_pretrained("timm/densenet121.ra_in1k")
     return Extractor
 
 def get_last_linear_layer(model):
