@@ -2,6 +2,8 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 import numpy as np
+import datetime
+import uuid
 
 from src.config import *
 from src.models.model import get_model, get_feature_extractor
@@ -12,6 +14,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+import wandb
 
 def calculate_class_loss_metric(y_true, y_pred, criterion, metric_fn):
     classes = np.unique(y_true)
@@ -146,27 +149,41 @@ def validate(model, dataloader, criterion, device, metric_fn):
     return epoch_loss, epoch_metric, class_losses, class_metric
 
 
-def main():
+def main(params=None, trial_number=None):
     config = get_config()
+
+    # parameter를 설정하지 않은 경우
+    if params is None:
+        params = {
+            'learning_rate': config['training']['learning_rate'],
+            'batch_size': config['training']['batch_size'],
+            'num_epochs': config['training']['num_epochs'],
+            'drop_rate': config['training']['drop_rate'],
+            'attn_drop_rate': config['training']['attn_drop_rate'],
+            'drop_rate_path': config['training']['drop_rate_path'],
+            'growth_rate': config['training']['growth_rate'],
+            'compression_factor': config['training']['compression_factor']
+        }
+
+    # 동적 project 명 만들기
+    current_date = datetime.datetime.now().strftime("%Y%m%d") # 날짜
+    model_name = config['model']['name']
+    batch_size = params['batch_size']
+    unique_id = str(uuid.uuid4())[-2:] # 고유 Key
+
+    project_name = f"{model_name}_bs{batch_size}_{current_date}_{unique_id}"
+
+    # wandb 초기화
+    wandb.init(project=project_name, config=params)
+
     device = torch.device(config['training']['device'])
-
     model = get_model(config).to(device)
-    feature_extractor = get_feature_extractor(config)
 
-    model_type = identify_model_type(model)
+    apply_hyperparameters(model, params)
 
-    params = {
-        'learning_rate': config['training']['learning_rate'],
-        'batch_size': config['training']['batch_size'],
-        'num_epochs': config['training']['num_epochs'],
-        'drop_rate': config['training']['drop_rate'],
-        'attn_drop_rate': config['training']['attn_drop_rate'],
-        'drop_rate_path': config['training']['drop_rate_path'],
-        'growth_rate': config['training']['growth_rate'],
-        'compression_factor': config['training']['compression_factor'],
-    }
+    # feature_extractor = get_feature_extractor(config)
 
-    train_loader, val_loader = get_data_loaders(config)
+    train_loader, val_loader = get_data_loaders(config, batch_size=params['batch_size'])
 
     criterion = get_criterion(config['training']['criterion'])
     optimizer = get_optimizer(config['training']['optimizer'], model.parameters())
@@ -178,7 +195,6 @@ def main():
     patience_counter = 0
     early_stopping_config = config['training']['early_stopping']
 
-    apply_hyperparameters(model_type, params)
 
     # 메인 트레이닝 루프
     for epoch in range(config['training']['num_epochs']):
@@ -188,6 +204,16 @@ def main():
         print(f"Epoch {epoch+1}/{config['training']['num_epochs']}")
         print(f"Train Loss: {train_loss:.4f}, Train Metric: {train_metric:.4f}")
         print(f"Val Loss: {val_loss:.4f}, Val Metric: {val_metric:.4f}")
+
+        wandb.log({
+            "epoch": epoch,
+            "train_loss": train_loss,
+            "train_metric": train_metric,
+            "val_loss": val_loss,
+            "val_metric": val_metric,
+            # "train_class_metric": train_class_metric,
+            # "val_class_metric": val_class_metric
+        })
 
         #print("Train Class Losses:", train_class_losses)
         #print("Train Class metric:", train_class_metric)
@@ -206,8 +232,11 @@ def main():
         if metric_fn.is_better(early_stop_value, best_val_metric, early_stopping_config['min_delta']):
             best_val_metric = early_stop_value
             patience_counter = 0
-            
-            torch.save(model.state_dict(), f"{config['paths']['save_dir']}/best_model1.pth")
+            if trial_number is not None:
+                model_path = f"{config['paths']['save_dir']}/best_model_trial_{trial_number}.pth"
+            else:
+                model_path = f"{config['paths']['save_dir']}/best_model1.pth"
+            torch.save(model.state_dict(), model_path)
         else:
             patience_counter += 1
 
@@ -233,8 +262,16 @@ def main():
             #print("Train Class metric:", train_class_metric)
             #print("Val Class Losses:", val_class_losses)
             #print("Val Class metric:", val_class_metric)
+        
+        if trial_number is not None:
+            final_model_path = f"{config['paths']['save_dir']}/final_model_trial_{trial_number}.pth"
+        else:
+            final_model_path = f"{config['paths']['save_dir']}/final_model1.pth"
 
-    torch.save(model.state_dict(), f"{config['paths']['save_dir']}/final_model1.pth")
+    torch.save(model.state_dict(), final_model_path)
+
+    wandb.finish()
+    return best_val_metric
 
 if __name__ == "__main__":
     main()

@@ -113,7 +113,10 @@ def get_test_loaders(config):
     )
     return test_data_loaders
 
-def get_data_loaders(config):
+def get_data_loaders(config, batch_size=None):
+    if batch_size is None:
+        batch_size = config['training']['batch_size']
+
     train_dataset = CustomDataset(
         root_dir=config['data']['train_dir'],
         info_file=config['data']['train_info_file'],
@@ -128,14 +131,14 @@ def get_data_loaders(config):
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=config['training']['batch_size'],
+        batch_size=batch_size,
         shuffle=True,
         num_workers=4,
         pin_memory=True
     )
     val_loader = DataLoader(
         val_dataset,
-        batch_size=config['training']['batch_size'],
+        batch_size=batch_size,
         shuffle=False,
         num_workers=4,
         pin_memory=True
