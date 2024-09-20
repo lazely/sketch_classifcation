@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
-from config import *
+from src.config import *
 import os
 import cv2
 import pandas as pd
