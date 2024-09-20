@@ -160,7 +160,7 @@ def main(params=None, trial_number=None):
             'num_epochs': config['training']['num_epochs'],
             'drop_rate': config['training']['drop_rate'],
             'attn_drop_rate': config['training']['attn_drop_rate'],
-            'drop_rate_path': config['training']['drop_rate_path'],
+            'drop_path_rate': config['training']['drop_path_rate'],
             'growth_rate': config['training']['growth_rate'],
             'compression_factor': config['training']['compression_factor']
         }
