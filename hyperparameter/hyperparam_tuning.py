@@ -14,7 +14,7 @@ from optuna.samplers import TPESampler
 from src.config import *
 from src.utils.metrics import get_metric_function
 from scripts.train import train_one_epoch, validate, get_data_loaders
-from src.data.dataset import CustomDataset
+from src.data.dataset import CustomDataset, get_transform
 from src.models.model import get_model
 
 config = get_config()
@@ -63,6 +63,36 @@ def apply_hyperparameters(model, params):
         if hasattr(model, 'compression'):
             model.compression = params['compression_factor']
 
+def get_data_loaders_hyper(config, params):
+    train_dataset = CustomDataset(
+        root_dir=config['data']['train_dir'],
+        info_file=config['data']['train_info_file'],
+        augmented_dir=config['data']['augmented_dir'],
+        augmented_info_file=config['data']['augmented_info_file'],
+        transform=get_transform(config)
+    )
+
+    train_size = int((1-config['training']['validation_ratio']) * len(train_dataset))
+    val_size = len(train_dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=params['opt_batch_size'],
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=params['opt_batch_size'],
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True
+    )
+
+    return train_loader, val_loader
+
 def objective(trial):
     params = {}
 
@@ -91,7 +121,7 @@ def objective(trial):
                }, reinit=True)
     
     # DataLoader
-    train_loader, val_loader = get_data_loaders(config)
+    train_loader, val_loader = get_data_loaders_hyper(config, params)
 
     # 학습
     device = torch.device(config['training']['device'])
