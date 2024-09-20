@@ -28,7 +28,7 @@ training:
   metric: "accuracy"
   drop_rate: 0.4461988529143907
   attn_drop_rate: 0.1665896935298184
-  drop_rate_path: 0.05950492951303196
+  drop_path_rate: 0.05950492951303196
   growth_rate: 16
   compression_factor: 0.1
 
