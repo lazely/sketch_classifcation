@@ -7,6 +7,10 @@ data:
   augmented_dir: "./data/augmented"
   augmented_info_file: "./data/augmented.csv"
 
+wandb:
+  user_name: "jm"
+  team_name: "gaemanssi2-naver-ai-boostcamp"
+
 model:
   name: "resnet"
   pretrained: True
