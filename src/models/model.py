@@ -16,7 +16,8 @@ def get_model(config):
         "eff4":"efficientnet_b4",
         "eff5":"efficientnet_b5",
         "eff6":"efficientnet_b6",
-        "eff7":"efficientnet_b7"
+        "eff7":"efficientnet_b7",
+        "densenet": "densenet121"
     }
     model_name = model_mapping[model_config_name]
     model = timm.create_model(model_name, pretrained=config['model']['pretrained'], num_classes=num_classes)
