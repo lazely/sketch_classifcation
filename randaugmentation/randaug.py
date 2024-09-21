@@ -45,7 +45,7 @@ def perform_offline_augmentation(config_path):
     augmented_info_file = config['data']['augmented_info_file']
     
     # Randaugment 인스턴스 생성
-    randaugment = get_randaugment(config['randaugment'])
+    randaugment = get_randaugment(config['randaugment'], seed = 42)
     
     df = pd.read_csv(train_info_file)
     
@@ -86,4 +86,4 @@ def perform_offline_augmentation(config_path):
 
 if __name__ == "__main__":
     config = get_config()
-    perform_offline_augmentation(config, seed = 42)
+    perform_offline_augmentation(config)
