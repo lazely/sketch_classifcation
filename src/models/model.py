@@ -19,7 +19,9 @@ def get_model(config):
         "eff7":"efficientnet_b7",
         "densenet": "densenet121"
     }
-    model_name = model_mapping[model_config_name]
+    # model_name = model_mapping[model_config_name]
+
+    model_name = model_mapping.get(model_config_name, model_config_name)
     model = timm.create_model(model_name, pretrained=config['model']['pretrained'], num_classes=num_classes)
 
     # 모델 분류 층 수정
