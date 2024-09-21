@@ -264,7 +264,7 @@ def main(params=None, trial_number=None):
             #print("Val Class metric:", val_class_metric)
         
         if trial_number is not None:
-            final_model_path = f"{config['paths']['save_dir']}/final_model_trial_{trial_number}.pth"
+            final_model_path = f"{config['paths']['save_dir']}/final_model_trial_{trial_number + 1}.pth"
         else:
             final_model_path = f"{config['paths']['save_dir']}/final_model1.pth"
 
