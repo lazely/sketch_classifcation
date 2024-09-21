@@ -99,7 +99,8 @@ def get_test_loaders(config):
         augmented_dir=config['data']['augmented_dir'],
         augmented_info_file=config['data']['augmented_info_file'],
         transform=get_transform(config,is_train=False),
-        is_inference=True
+        is_inference=True,
+        use_augmented=False
     )
     test_data_loaders = DataLoader(
         dataset,
@@ -160,7 +161,8 @@ def get_kfold_loaders(config: dict, n_splits: int = 5):
         info_file=config['data']['train_info_file'],
         augmented_dir=config['data']['augmented_dir'],
         augmented_info_file=config['data']['augmented_info_file'],
-        transform=get_transform(config)
+        transform=get_transform(config),
+        use_augmented=False
     )
     kfold = KFold(n_splits=n_splits, shuffle=True, random_state=42)
     
@@ -190,7 +192,8 @@ def get_inference_loader(config: dict):
         root_dir=config['data']['test_dir'],
         info_file=config['data']['test_info_file'],
         transform=get_transform(),
-        is_inference=True
+        is_inference=True,
+        use_augmented=False
     )
     
     loader = DataLoader(
