@@ -233,7 +233,7 @@ def main(params=None, trial_number=None):
             best_val_metric = early_stop_value
             patience_counter = 0
             if trial_number is not None:
-                model_path = f"{config['paths']['save_dir']}/best_model_trial_{trial_number}.pth"
+                model_path = f"{config['paths']['save_dir']}/best_model_trial_{trial_number + 1}.pth"
             else:
                 model_path = f"{config['paths']['save_dir']}/best_model1.pth"
             torch.save(model.state_dict(), model_path)
