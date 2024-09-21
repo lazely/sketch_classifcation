@@ -12,7 +12,11 @@ import random
 from torchvision import transforms
 from torchvision.transforms import RandAugment
 
-def get_randaugment(config):
+def get_randaugment(config, seed=None):
+    if seed is not None:
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+
     num_ops = config['num_ops']
     magnitude = config['magnitude']
     return RandAugment(num_ops=num_ops, magnitude=magnitude)
@@ -82,4 +86,4 @@ def perform_offline_augmentation(config_path):
 
 if __name__ == "__main__":
     config = get_config()
-    perform_offline_augmentation(config)
+    perform_offline_augmentation(config, seed = 42)
