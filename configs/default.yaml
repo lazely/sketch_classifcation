@@ -6,6 +6,11 @@ data:
   test_info_file: "./data/test.csv"
   augmented_dir: "./data/augmented"
   augmented_info_file: "./data/augmented.csv"
+  #dataset.py
+  split_dir: "./data/split"
+  #stable_diffusion.py
+  train_alpha_dir: "./data/train_alpha"
+  train_alpha_info_file: "./data/train_alpha_info.csv"
 
 wandb:
   user_name: "jm"
@@ -58,6 +63,8 @@ training:
 offline_augmentation:
   augmentation:
     flip: 1
+    mask: 1
+    brightness_contrast: 1
   ratio: 2
 
 randaugment:
